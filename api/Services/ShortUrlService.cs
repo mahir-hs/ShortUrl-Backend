@@ -10,7 +10,7 @@ namespace api.Services
         private readonly IShortUrlRepository _shortUrlRepository = shortUrlRepository;
         private readonly IRedisRepository _redisRepository = redisRepository;
         private readonly ILogger<ShortUrlService> _logger = logger;
-        private readonly string _baseDomain = configuration["AppSettings:BaseDomain"]!;
+        private readonly string _testDomain = configuration["AppSettings:TestDomain"]!;
 
         public async Task<ApiResponse> CreateShortUrlAsync(string originalUrl, DateTime? expirationDate = null)
         {
@@ -38,7 +38,7 @@ namespace api.Services
             await _redisRepository.SetAsync( shortCode, originalUrl, TimeSpan.FromDays(183));
 
             _logger.LogInformation("Created new short URL: {ShortCode}", shortCode);
-            return new ApiResponse { Result = $"{_baseDomain}/{shortCode}", Success = true };
+            return new ApiResponse { Result = $"{_testDomain}/{shortCode}", Success = true };
         }
 
         public async Task<ApiResponse> DeleteShortUrlAsync(string id)
@@ -61,7 +61,7 @@ namespace api.Services
             return await _shortUrlRepository.GetByIdAsync(id);
         }
 
-        public async Task<ApiResponse> GetOriginalUrlAsync(string shortCode)
+        public async Task<ApiResponse?> GetOriginalUrlAsync(string shortCode)
         {
             if (string.IsNullOrEmpty(shortCode))
             {
@@ -79,11 +79,11 @@ namespace api.Services
             if (existingShortUrl != null && existingShortUrl.Result != null)
             {
                 TimeSpan? expiry = null;
-                if (existingShortUrl.Result.ExpirationDate.HasValue)
+                if (existingShortUrl?.Result?.ExpirationDate.HasValue)
                 {
-                    expiry = existingShortUrl.Result.ExpirationDate.Value - DateTime.UtcNow;
+                    expiry = existingShortUrl?.Result?.ExpirationDate.Value - DateTime.UtcNow;
                 }
-                await _redisRepository.SetAsync(shortCode, existingShortUrl.Result.OriginalUrl, expiry);
+                await _redisRepository.SetAsync(shortCode, existingShortUrl?.Result?.OriginalUrl, expiry);
                 return existingShortUrl;
             }
 
@@ -92,7 +92,7 @@ namespace api.Services
         }
 
 
-        private string GenerateShortCode()
+        private static string GenerateShortCode()
         {
             var id = Math.Abs(Guid.NewGuid().GetHashCode());
 

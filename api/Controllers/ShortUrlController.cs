@@ -23,7 +23,7 @@ namespace api.Controllers
         {
             var response = await _shortUrlService.GetOriginalUrlAsync(shortCode);
 
-            if (response.Success)
+            if (response!.Success)
             {
                 return Ok(response);
             }
